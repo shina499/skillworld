@@ -1,0 +1,6 @@
+{
+  "name": "SkillGarden",
+  "description": "A personalized 3D learning companion that grows a living world as you take tiny, guilt-free steps toward hobbies and passions.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
