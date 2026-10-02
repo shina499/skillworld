@@ -21,7 +21,6 @@ import { getGreeting, getEncouragementMessage } from '../../lib/notifications/en
 import { ComebackBanner } from './ComebackBanner';
 import { QuestPlayerModal } from './QuestPlayerModal';
 import { SupabaseSqlModal } from '../common/SupabaseSqlModal';
-import { PROFESSIONAL_QUESTS } from '../../data/professionalQuests';
 import { personalizationEngine } from '../../lib/personalization/engine';
 import { scoreQuestSuitability } from '../../lib/personalization/recommendationScorer';
 
@@ -54,22 +53,19 @@ export const TodayView: React.FC<TodayViewProps> = ({
 
   const activeTopic = userTopics.find((t) => t.id === selectedTopicId) || userTopics[0];
 
-  // Candidates for this topic + professional curated library
+  // Candidates for this topic from database quests
   const topicCandidates = useMemo(() => {
     const topicNorm = (activeTopic?.topicName || '').toLowerCase().trim();
-    const list = [
-      ...PROFESSIONAL_QUESTS.filter((q) => (q.topicName || '').toLowerCase().includes(topicNorm)),
-      ...quests.filter(
-        (q) => q.userTopicId === activeTopic?.id || (q.topicName || '').toLowerCase().includes(topicNorm)
-      ),
-    ];
+    const list = quests.filter(
+      (q) => !activeTopic || q.userTopicId === activeTopic.id || (q.topicName || '').toLowerCase().includes(topicNorm)
+    );
 
     // Deduplicate by ID
     const map = new Map<string, Quest>();
     for (const q of list) {
       map.set(q.id, q);
     }
-    return map.size > 0 ? Array.from(map.values()) : PROFESSIONAL_QUESTS;
+    return map.size > 0 ? Array.from(map.values()) : quests;
   }, [activeTopic, quests]);
 
   // Run the 11-factor recommendation engine

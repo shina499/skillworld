@@ -1,5 +1,4 @@
-import { Quest, DifficultyLevel, QuestType, LearningStyle } from '../../types';
-import { SEED_QUESTS, generateComebackQuest } from '../../data/seedQuests';
+import { Quest, QuestType, LearningStyle } from '../../types';
 
 export interface RecommendationContext {
   skillName: string;
@@ -11,6 +10,49 @@ export interface RecommendationContext {
   consecutiveSuccessCount: number;
   recentAbandonCount: number;
   currentLevel: number;
+}
+
+export function generateComebackQuest(skillName: string, daysAway: number): Quest {
+  return {
+    id: `comeback_${Date.now()}`,
+    skillName,
+    title: `Welcome Back: A Gentle 3-Minute Refresh in ${skillName}`,
+    description: `It has been ${daysAway} days. No pressure, no guilt—just a cozy return to your garden.`,
+    type: 'comeback',
+    estimatedMinutes: 3,
+    difficulty: 'beginner',
+    rewardXp: 30,
+    whyThisQuest: 'Breaks happen! A warm, guilt-free micro-step gets the rhythm back instantly.',
+    steps: [
+      {
+        id: 'cb_1',
+        title: 'Welcome Back',
+        instruction: 'Take a calm breath. Your knowledge did not vanish.',
+        type: 'concept',
+        content: `Learning is cyclical like a garden. Returning after ${daysAway} days is a success.\n\nTake two minutes to reconnect with ${skillName} without performance anxiety.`,
+      },
+      {
+        id: 'cb_2',
+        title: 'Spark of Curiosity',
+        instruction: 'What sounds most appealing right now?',
+        type: 'interactive_choice',
+        options: [
+          'Review a concept I previously understood well',
+          'Explore a completely fresh idea for 2 minutes',
+          'Just wander and observe without testing myself',
+        ],
+        correctOptionIndex: 0,
+        explanation: 'Any direction is valid—welcome back to your learning sanctuary!',
+      },
+      {
+        id: 'cb_3',
+        title: 'One-Sentence Check-in',
+        instruction: 'How does it feel to return today?',
+        type: 'reflection',
+        promptQuestion: 'A single word or phrase (e.g., curious, calm, ready).',
+      },
+    ],
+  };
 }
 
 export function generateCustomQuestForGoal(
@@ -70,36 +112,23 @@ export function generateCustomQuestForGoal(
   };
 }
 
-export function pickOrGenerateQuest(ctx: RecommendationContext): Quest {
+export function pickOrGenerateQuest(ctx: RecommendationContext, candidateQuests: Quest[] = []): Quest {
   // 1. Check for Comeback condition (inactivity >= 3 days)
   if (ctx.daysSinceLastActivity >= 3) {
     return generateComebackQuest(ctx.skillName, ctx.daysSinceLastActivity);
   }
 
-  // 2. Check if we have pre-authored curated quests for this domain
-  const normalizedKey = ctx.skillName.toLowerCase().replace(/[^a-z]/g, '');
-  let domainQuests: Quest[] | undefined;
-
-  for (const [key, quests] of Object.entries(SEED_QUESTS)) {
-    if (normalizedKey.includes(key) || key.includes(normalizedKey)) {
-      domainQuests = quests;
-      break;
-    }
-  }
-
-  if (domainQuests && domainQuests.length > 0) {
-    // Find uncompleted quest
-    const uncompleted = domainQuests.filter((q) => !ctx.completedQuestIds.includes(q.id));
+  // 2. Check candidate quests from database
+  if (candidateQuests && candidateQuests.length > 0) {
+    const uncompleted = candidateQuests.filter((q) => !ctx.completedQuestIds.includes(q.id));
     if (uncompleted.length > 0) {
-      // Pick best matching time and difficulty
       let candidate = uncompleted[0];
-
-      // If user had several successes, favor intermediate/challenge
       if (ctx.consecutiveSuccessCount >= 2 && uncompleted.length > 1) {
-        const harder = uncompleted.find((q) => q.difficulty === 'intermediate' || q.type === 'challenge' || q.type === 'build');
+        const harder = uncompleted.find(
+          (q) => q.difficulty === 'intermediate' || q.type === 'challenge' || q.type === 'build'
+        );
         if (harder) candidate = harder;
       }
-
       return candidate;
     }
   }

@@ -14,11 +14,13 @@ import {
   Database,
   Plus,
   Trash2,
+  UploadCloud,
+  AlertTriangle,
 } from 'lucide-react';
 import { UserProfile, UserTopic, ReminderSettings, EncouragementStyle } from '../../types';
 import { reminderService } from '../../lib/notifications/reminderService';
 import { getEncouragementMessage } from '../../lib/notifications/encouragementCopy';
-import { isSupabaseConfigured, reconfigureSupabaseClient } from '../../lib/supabase/client';
+import { isSupabaseConfigured, reconfigureSupabaseClient, gardenDb } from '../../lib/supabase/client';
 import { SupabaseSqlModal } from './SupabaseSqlModal';
 
 interface SettingsViewProps {
@@ -28,6 +30,7 @@ interface SettingsViewProps {
   onUpdateProfile: (updated: Partial<UserProfile>) => void;
   onUpdateReminders: (updated: Partial<ReminderSettings>) => void;
   onAddNewTopic: () => void;
+  onDeleteTopic?: (userTopicId: string) => void;
   onResetAllData: () => void;
   onExportData: () => void;
 }
@@ -39,6 +42,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
   onUpdateProfile,
   onUpdateReminders,
   onAddNewTopic,
+  onDeleteTopic,
   onResetAllData,
   onExportData,
 }) => {
@@ -46,11 +50,23 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
   const [sessionLen, setSessionLen] = useState(profile.targetSessionMinutes || 15);
   const [notificationTestStatus, setNotificationTestStatus] = useState<string | null>(null);
   const [isSqlModalOpen, setIsSqlModalOpen] = useState(false);
+  const [showResetConfirm, setShowResetConfirm] = useState(false);
+  const [deletingTopicId, setDeletingTopicId] = useState<string | null>(null);
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [syncMessage, setSyncMessage] = useState<string | null>(null);
 
   // Supabase Custom Config State
   const [supabaseUrlInput, setSupabaseUrlInput] = useState(() => localStorage.getItem('skillgarden_custom_supabase_url') || '');
   const [supabaseKeyInput, setSupabaseKeyInput] = useState(() => localStorage.getItem('skillgarden_custom_supabase_key') || '');
   const [supabaseStatusMsg, setSupabaseStatusMsg] = useState<string | null>(null);
+
+  const handlePushToSupabase = async () => {
+    setIsSyncing(true);
+    setSyncMessage(null);
+    const res = await gardenDb.syncAllLocalToRemote();
+    setSyncMessage(res.message);
+    setIsSyncing(false);
+  };
 
   const encouragementStyles: { id: EncouragementStyle; label: string; sample: string; icon: string }[] = [
     { id: 'gentle', label: 'Gentle', sample: '"Ready for a tiny step? Even five minutes counts."', icon: '🌱' },
@@ -143,20 +159,65 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
           {userTopics.map((ut) => (
             <div
               key={ut.id}
-              className="p-4 rounded-2xl bg-stone-50 border border-stone-200/80 flex items-center justify-between"
+              className="p-4 rounded-2xl bg-stone-50 border border-stone-200/80 flex flex-col justify-between gap-3"
             >
-              <div className="flex items-center gap-3">
-                <span className="text-2xl">{ut.topicIcon}</span>
-                <div>
-                  <h4 className="font-bold text-stone-900 text-sm">{ut.topicName}</h4>
-                  <div className="text-xs text-emerald-700 font-semibold">
-                    Level {ut.level} • {ut.xp} XP
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <span className="text-2xl p-2 rounded-xl bg-white border border-stone-200/80 shadow-xs">
+                    {ut.topicIcon}
+                  </span>
+                  <div>
+                    <h4 className="font-bold text-stone-900 text-sm">{ut.topicName} District</h4>
+                    <div className="text-xs text-emerald-700 font-semibold">
+                      Level {ut.level} • {ut.xp} XP
+                    </div>
                   </div>
                 </div>
+                <span className="text-xs font-semibold px-2 py-1 rounded-lg bg-emerald-100 text-emerald-800">
+                  Active Island
+                </span>
               </div>
-              <span className="text-xs font-semibold px-2 py-1 rounded-lg bg-emerald-100 text-emerald-800">
-                Active
-              </span>
+
+              {deletingTopicId === ut.id ? (
+                <div className="p-3 rounded-xl bg-red-50 border border-red-200 space-y-2 animate-fade-in">
+                  <p className="text-xs font-bold text-red-900">
+                    Delete the {ut.topicName} island from your 3D world?
+                  </p>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        onDeleteTopic?.(ut.id);
+                        setDeletingTopicId(null);
+                      }}
+                      className="px-3 py-1 rounded-lg bg-red-600 hover:bg-red-700 text-white font-bold text-xs shadow-xs cursor-pointer active:scale-95"
+                    >
+                      Yes, Delete Island
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setDeletingTopicId(null)}
+                      className="px-3 py-1 rounded-lg bg-white border border-stone-300 text-stone-700 text-xs font-semibold cursor-pointer"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                onDeleteTopic && (
+                  <div className="flex justify-end pt-1 border-t border-stone-200/60">
+                    <button
+                      type="button"
+                      onClick={() => setDeletingTopicId(ut.id)}
+                      className="text-xs text-red-600 hover:text-red-800 font-bold flex items-center gap-1.5 p-1 transition cursor-pointer"
+                      title="Delete this island and its quests from your world"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                      <span>Remove Island</span>
+                    </button>
+                  </div>
+                )
+              )}
             </div>
           ))}
         </div>
@@ -395,27 +456,46 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
         </div>
 
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2">
-          <button
-            type="button"
-            onClick={() => setIsSqlModalOpen(true)}
-            className="text-xs text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 px-3.5 py-2 rounded-xl font-bold transition flex items-center gap-1.5 self-start"
-          >
-            <Database className="w-3.5 h-3.5 text-emerald-700" />
-            <span>View & Copy Supabase SQL Schema</span>
-          </button>
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setIsSqlModalOpen(true)}
+              className="text-xs text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 px-3.5 py-2 rounded-xl font-bold transition flex items-center gap-1.5 cursor-pointer"
+            >
+              <Database className="w-3.5 h-3.5 text-emerald-700" />
+              <span>View & Copy Supabase SQL Schema</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={handlePushToSupabase}
+              disabled={isSyncing}
+              className="text-xs text-purple-900 bg-purple-50 hover:bg-purple-100 border border-purple-200 px-3.5 py-2 rounded-xl font-bold transition flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+            >
+              <UploadCloud className="w-3.5 h-3.5 text-purple-700" />
+              <span>{isSyncing ? 'Pushing Data...' : 'Push Local Data into Supabase Tables'}</span>
+            </button>
+          </div>
 
           <button
             type="button"
             onClick={handleConnectSupabase}
-            className="px-5 py-2.5 rounded-xl bg-stone-900 hover:bg-black text-white font-bold text-xs shadow-sm transition"
+            className="px-5 py-2.5 rounded-xl bg-stone-900 hover:bg-black text-white font-bold text-xs shadow-sm transition cursor-pointer self-start sm:self-auto"
           >
             Save & Connect Supabase
           </button>
         </div>
 
+        {syncMessage && (
+          <div className="p-3 rounded-xl bg-purple-50 border border-purple-200 text-purple-900 text-xs font-medium animate-fade-in flex items-center gap-2">
+            <CheckCircle className="w-4 h-4 text-purple-600 shrink-0" />
+            <span>{syncMessage}</span>
+          </div>
+        )}
+
         {supabaseStatusMsg && (
           <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-medium animate-fade-in flex items-center gap-2">
-            <CheckCircle className="w-4 h-4 text-emerald-600" />
+            <CheckCircle className="w-4 h-4 text-emerald-600 shrink-0" />
             <span>{supabaseStatusMsg}</span>
           </div>
         )}
@@ -431,31 +511,58 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
       <div className="p-6 md:p-8 rounded-3xl bg-white border border-stone-200/90 shadow-sm space-y-4">
         <h3 className="text-xl font-bold text-stone-900 flex items-center gap-2">
           <Shield className="w-5 h-5 text-emerald-600" />
-          <span>Data Backup & Isolation</span>
+          <span>Data Backup & World Reset</span>
         </h3>
 
         <div className="flex flex-wrap gap-3 pt-2">
           <button
             type="button"
             onClick={onExportData}
-            className="px-5 py-2.5 rounded-xl border border-stone-300 hover:bg-stone-50 text-stone-700 font-bold text-xs flex items-center gap-2 transition"
+            className="px-5 py-2.5 rounded-xl border border-stone-300 hover:bg-stone-50 text-stone-700 font-bold text-xs flex items-center gap-2 transition cursor-pointer"
           >
             <Download className="w-4 h-4 text-stone-500" />
             <span>Export Garden Backup (JSON)</span>
           </button>
 
-          <button
-            type="button"
-            onClick={() => {
-              if (window.confirm('Would you like to reset your garden? This will return to a fresh seedling island.')) {
-                onResetAllData();
-              }
-            }}
-            className="px-5 py-2.5 rounded-xl border border-red-200 hover:bg-red-50 text-red-600 font-bold text-xs flex items-center gap-2 transition"
-          >
-            <RotateCcw className="w-4 h-4 text-red-500" />
-            <span>Reset Island to Fresh Seedling</span>
-          </button>
+          {!showResetConfirm ? (
+            <button
+              type="button"
+              onClick={() => setShowResetConfirm(true)}
+              className="px-5 py-2.5 rounded-xl border border-red-200 hover:bg-red-50 text-red-600 font-bold text-xs flex items-center gap-2 transition cursor-pointer active:scale-95"
+            >
+              <RotateCcw className="w-4 h-4 text-red-500" />
+              <span>Reset World to Fresh Seedling</span>
+            </button>
+          ) : (
+            <div className="w-full p-4 rounded-2xl bg-red-50 border border-red-200 space-y-3 animate-fade-in">
+              <div className="flex items-center gap-2 text-red-900 font-extrabold text-sm">
+                <AlertTriangle className="w-4 h-4 text-red-600" />
+                <span>Confirm World Reset</span>
+              </div>
+              <p className="text-xs text-red-700 leading-relaxed">
+                This will reset your world level to 1, clear completed quests, and return your garden archipelago to a fresh seedling. Your custom settings will remain.
+              </p>
+              <div className="flex items-center gap-2 pt-1">
+                <button
+                  type="button"
+                  onClick={() => {
+                    onResetAllData();
+                    setShowResetConfirm(false);
+                  }}
+                  className="px-4 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-xs shadow transition active:scale-95 cursor-pointer"
+                >
+                  Yes, Reset World Now
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowResetConfirm(false)}
+                  className="px-4 py-2 rounded-xl bg-white border border-stone-300 text-stone-700 hover:bg-stone-50 font-bold text-xs transition cursor-pointer"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>

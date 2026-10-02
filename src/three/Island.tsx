@@ -13,6 +13,7 @@ interface IslandProps {
   selectedTopicId?: string;
   onSelectTopic: (userTopicId: string) => void;
   onHubClick?: () => void;
+  isSpinning?: boolean;
 }
 
 export const Island: React.FC<IslandProps> = ({
@@ -23,11 +24,18 @@ export const Island: React.FC<IslandProps> = ({
   selectedTopicId,
   onSelectTopic,
   onHubClick,
+  isSpinning = false,
 }) => {
   const worldGroupRef = useRef<THREE.Group>(null);
 
   // Subtle floating motion
   useFrame(({ clock }) => {
+    if (!isSpinning) {
+      if (worldGroupRef.current) {
+        worldGroupRef.current.position.y = 0;
+      }
+      return;
+    }
     const t = clock.getElapsedTime();
     if (worldGroupRef.current) {
       worldGroupRef.current.position.y = Math.sin(t * 0.7) * 0.06;
@@ -43,6 +51,7 @@ export const Island: React.FC<IslandProps> = ({
         overallLevel={profile.overallLevel}
         totalXp={profile.totalXp}
         onHubClick={onHubClick}
+        isSpinning={isSpinning}
       />
 
       {/* 2. Surrounding Connected Thematic Topic Districts */}
@@ -57,6 +66,7 @@ export const Island: React.FC<IslandProps> = ({
             userTopic={matchingTopic}
             isSelected={selectedTopicId === region.userTopicId}
             onSelect={() => onSelectTopic(region.userTopicId)}
+            isSpinning={isSpinning}
           />
         );
       })}

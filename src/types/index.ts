@@ -247,6 +247,7 @@ export interface QuestStep {
     | 'concept'
     | 'interactive_choice'
     | 'micro_code'
+    | 'interactive_code'
     | 'micro_action'
     | 'reflection'
     | 'speaking_task'
@@ -385,6 +386,7 @@ export interface World {
   activeThematicTheme?: string;
   weather?: WeatherType;
   ambientSoundEnabled?: boolean;
+  autoRotate?: boolean;
   timeOfDay: 'auto' | 'morning' | 'afternoon' | 'dusk' | 'night';
   updatedAt?: string;
 }

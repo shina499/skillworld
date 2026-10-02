@@ -1,6 +1,4 @@
 import { Quest, UserProfile, Goal, SkillProgress, LearningSession, QuestReflection } from '../../types';
-import { PROFESSIONAL_QUESTS } from '../../data/professionalQuests';
-import { SEED_QUESTS } from '../../data/seedQuests';
 
 export interface ScorerContext {
   profile: UserProfile;
@@ -244,9 +242,28 @@ export function scoreQuestSuitability(quest: Quest, ctx: ScorerContext): ScoredQ
  */
 export function recommendTopQuest(allCandidates: Quest[], ctx: ScorerContext): ScoredQuestResult {
   if (allCandidates.length === 0) {
-    // Fallback to professional quest
+    const fallbackQuest: Quest = {
+      id: `quest_discovery_${Date.now()}`,
+      skillName: ctx.activeTopicName || 'General',
+      title: `Curious Step in ${ctx.activeTopicName || 'Learning'}`,
+      description: 'A focused micro-session exploring foundational concepts.',
+      type: 'lesson',
+      estimatedMinutes: 10,
+      difficulty: 'Beginner',
+      rewardXp: 25,
+      whyThisQuest: 'A gentle exploration to cultivate understanding.',
+      steps: [
+        {
+          id: 'step_intro',
+          title: 'Foundational Observation',
+          instruction: 'Explore the core principle of this learning area.',
+          type: 'concept',
+          content: 'Learning happens best through tiny, sustained moments of focus and reflection.',
+        },
+      ],
+    };
     return {
-      quest: PROFESSIONAL_QUESTS[0],
+      quest: fallbackQuest,
       score: 100,
       scoreBreakdown: {
         topicRelevance: 25,
@@ -261,7 +278,7 @@ export function recommendTopQuest(allCandidates: Quest[], ctx: ScorerContext): S
         variety: 0,
         recencyPenalty: 0,
       },
-      whyExplanation: PROFESSIONAL_QUESTS[0].whyThisQuest,
+      whyExplanation: fallbackQuest.whyThisQuest,
     };
   }
 
@@ -272,24 +289,8 @@ export function recommendTopQuest(allCandidates: Quest[], ctx: ScorerContext): S
 }
 
 /**
- * Gathers all candidate quests from Professional Quests + Seed Quests + Starter Quests
+ * Gathers candidate quests provided from database or fallback pool
  */
-export function getAllAvailableQuests(): Quest[] {
-  const map = new Map<string, Quest>();
-
-  // Add Professional Quests first
-  for (const q of PROFESSIONAL_QUESTS) {
-    map.set(q.id, q);
-  }
-
-  // Add Seed Quests
-  for (const quests of Object.values(SEED_QUESTS)) {
-    for (const q of quests) {
-      if (!map.has(q.id)) {
-        map.set(q.id, q);
-      }
-    }
-  }
-
-  return Array.from(map.values());
+export function getAllAvailableQuests(providedQuests: Quest[] = []): Quest[] {
+  return providedQuests;
 }

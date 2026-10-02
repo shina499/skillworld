@@ -8,6 +8,7 @@ interface TopicDistrictProps {
   userTopic: UserTopic;
   isSelected?: boolean;
   onSelect: () => void;
+  isSpinning?: boolean;
 }
 
 export const TopicDistrict: React.FC<TopicDistrictProps> = ({
@@ -15,6 +16,7 @@ export const TopicDistrict: React.FC<TopicDistrictProps> = ({
   userTopic,
   isSelected,
   onSelect,
+  isSpinning = false,
 }) => {
   const groupRef = useRef<THREE.Group>(null);
   const floatingPropRef = useRef<THREE.Group>(null);
@@ -24,6 +26,12 @@ export const TopicDistrict: React.FC<TopicDistrictProps> = ({
   const category = region.topicCategory || 'tech';
 
   useFrame(({ clock }) => {
+    if (!isSpinning) {
+      if (groupRef.current) {
+        groupRef.current.position.y = region.position[1];
+      }
+      return;
+    }
     const t = clock.getElapsedTime();
     if (floatingPropRef.current) {
       floatingPropRef.current.position.y = 1.6 + Math.sin(t * 2 + region.position[0]) * 0.08;

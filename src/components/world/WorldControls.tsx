@@ -12,6 +12,9 @@ import {
   Zap,
   Volume2,
   VolumeX,
+  RotateCcw,
+  Pause,
+  Play,
 } from 'lucide-react';
 import { WorldState, WeatherType } from '../../types';
 import { resolveEffectiveWeather } from '../../three/WeatherSystem';
@@ -22,11 +25,14 @@ interface WorldControlsProps {
   weather?: WeatherType;
   activeDaysThisWeek?: number;
   hasLearnedToday?: boolean;
+  autoRotate?: boolean;
   onChangeTimeOfDay: (time: WorldState['timeOfDay']) => void;
   onChangeWeather: (weather: WeatherType) => void;
+  onToggleAutoRotate?: (autoRotate: boolean) => void;
   lowPowerMode: boolean;
   onToggleLowPower: () => void;
   onTriggerBloom: () => void;
+  onResetView?: () => void;
 }
 
 export const WorldControls: React.FC<WorldControlsProps> = ({
@@ -34,11 +40,14 @@ export const WorldControls: React.FC<WorldControlsProps> = ({
   weather = 'auto',
   activeDaysThisWeek = 3,
   hasLearnedToday = false,
+  autoRotate = false,
   onChangeTimeOfDay,
   onChangeWeather,
+  onToggleAutoRotate,
   lowPowerMode,
   onToggleLowPower,
   onTriggerBloom,
+  onResetView,
 }) => {
   const [showWeatherMenu, setShowWeatherMenu] = useState(false);
   const [isSoundOn, setIsSoundOn] = useState(false);
@@ -57,7 +66,8 @@ export const WorldControls: React.FC<WorldControlsProps> = ({
     }
   }, [currentEffectiveWeather, isSoundOn]);
 
-  const toggleSound = () => {
+  const toggleSound = async () => {
+    await weatherAudio.init();
     const newState = weatherAudio.toggle(currentEffectiveWeather);
     setIsSoundOn(newState);
   };
@@ -72,19 +82,68 @@ export const WorldControls: React.FC<WorldControlsProps> = ({
   return (
     <div className="absolute top-4 right-4 z-20 flex flex-col items-end gap-2">
       <div className="flex flex-wrap items-center justify-end gap-2">
-        {/* Ambient Weather Sound Toggle */}
+        {/* Ambient Garden Music & Weather Sound Toggle */}
         <button
           type="button"
           onClick={toggleSound}
-          className={`p-2 rounded-2xl backdrop-blur border text-xs font-semibold flex items-center gap-1.5 transition active:scale-95 cursor-pointer shadow-sm ${
+          className={`px-3 py-2 rounded-2xl backdrop-blur border text-xs font-bold flex items-center gap-1.5 transition active:scale-95 cursor-pointer shadow-sm ${
             isSoundOn
-              ? 'bg-emerald-600 text-white border-emerald-500 shadow-emerald-600/20'
-              : 'bg-white/90 border-stone-200/80 text-stone-600 hover:text-stone-900'
+              ? 'bg-emerald-600 text-white border-emerald-500 shadow-emerald-600/25 ring-2 ring-emerald-400/40'
+              : 'bg-white/90 border-stone-200/80 text-stone-700 hover:text-stone-900 hover:bg-white'
           }`}
-          title={isSoundOn ? 'Mute Garden Ambiance' : `Play ${currentEffectiveWeather.replace('_', ' ')} Soundscape`}
+          title={isSoundOn ? 'Pause Garden Music & Ambiance' : `Play Tranquil Garden Music & ${currentEffectiveWeather.replace('_', ' ')} Soundscape`}
         >
-          {isSoundOn ? <Volume2 className="w-3.5 h-3.5 animate-pulse" /> : <VolumeX className="w-3.5 h-3.5" />}
+          {isSoundOn ? (
+            <>
+              <Volume2 className="w-3.5 h-3.5 text-white animate-pulse" />
+              <span>Music: Playing 🎵</span>
+            </>
+          ) : (
+            <>
+              <VolumeX className="w-3.5 h-3.5 text-stone-500" />
+              <span>Play Music 🎵</span>
+            </>
+          )}
         </button>
+
+        {/* Stop Spinning / Spin World Toggle */}
+        {onToggleAutoRotate && (
+          <button
+            type="button"
+            onClick={() => onToggleAutoRotate(!autoRotate)}
+            className={`px-3 py-2 rounded-2xl backdrop-blur border text-xs font-bold flex items-center gap-1.5 transition active:scale-95 cursor-pointer shadow-sm ${
+              autoRotate
+                ? 'bg-amber-100 text-amber-950 border-amber-300'
+                : 'bg-white/90 border-stone-200/80 text-stone-700 hover:text-stone-900 hover:bg-white'
+            }`}
+            title={autoRotate ? 'Stop world spinning (prevents dizziness)' : 'Start gentle world rotation'}
+          >
+            {autoRotate ? (
+              <>
+                <Pause className="w-3.5 h-3.5 text-amber-800" />
+                <span>Stop Spinning</span>
+              </>
+            ) : (
+              <>
+                <Play className="w-3.5 h-3.5 text-stone-500 fill-stone-500" />
+                <span>Spin World</span>
+              </>
+            )}
+          </button>
+        )}
+
+        {/* Reset Camera / View */}
+        {onResetView && (
+          <button
+            type="button"
+            onClick={onResetView}
+            className="px-3 py-2 rounded-2xl bg-white/90 hover:bg-white backdrop-blur border border-stone-200/80 shadow-sm text-xs font-semibold text-stone-700 flex items-center gap-1.5 transition active:scale-95 cursor-pointer"
+            title="Reset 3D World Camera View"
+          >
+            <RotateCcw className="w-3.5 h-3.5 text-stone-500" />
+            <span className="hidden sm:inline">Reset View</span>
+          </button>
+        )}
 
         {/* Active Weather Badge */}
         <div className="relative">

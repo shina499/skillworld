@@ -8,6 +8,7 @@ interface CentralHubProps {
   overallLevel: number;
   totalXp: number;
   onHubClick?: () => void;
+  isSpinning?: boolean;
 }
 
 export const CentralHub: React.FC<CentralHubProps> = ({
@@ -16,11 +17,13 @@ export const CentralHub: React.FC<CentralHubProps> = ({
   overallLevel,
   totalXp,
   onHubClick,
+  isSpinning = false,
 }) => {
   const crystalRef = useRef<THREE.Mesh>(null);
   const fountainWaterRef = useRef<THREE.Mesh>(null);
 
   useFrame(({ clock }) => {
+    if (!isSpinning) return;
     const t = clock.getElapsedTime();
     if (crystalRef.current) {
       crystalRef.current.position.y = 1.8 + Math.sin(t * 1.5) * 0.08;

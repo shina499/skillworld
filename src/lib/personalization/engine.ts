@@ -8,7 +8,7 @@ import {
   WorldState,
   QuestReflection,
 } from '../../types';
-import { generateComebackQuest } from '../../data/seedQuests';
+import { generateComebackQuest } from './questGenerator';
 import { recommendTopQuest, getAllAvailableQuests } from './recommendationScorer';
 
 export interface RecommendationResult {

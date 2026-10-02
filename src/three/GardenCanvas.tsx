@@ -17,6 +17,7 @@ interface GardenCanvasProps {
   onHubClick?: () => void;
   lowPowerMode?: boolean;
   hasLearnedToday?: boolean;
+  autoRotate?: boolean;
 }
 
 function Fallback2DWorld({
@@ -69,6 +70,7 @@ export const GardenCanvas: React.FC<GardenCanvasProps> = ({
   onHubClick,
   lowPowerMode = false,
   hasLearnedToday = false,
+  autoRotate = false,
 }) => {
   const [hasWebGlError, setHasWebGlError] = useState(false);
 
@@ -104,7 +106,7 @@ export const GardenCanvas: React.FC<GardenCanvasProps> = ({
             activeDaysThisWeek={profile.activeDaysThisWeek}
             hasLearnedToday={hasLearnedToday}
           />
-          <WaterAndClouds />
+          <WaterAndClouds isSpinning={Boolean(autoRotate)} />
           <Island
             profile={profile}
             userTopics={userTopics}
@@ -113,6 +115,7 @@ export const GardenCanvas: React.FC<GardenCanvasProps> = ({
             selectedTopicId={selectedTopicId}
             onSelectTopic={onSelectTopic}
             onHubClick={onHubClick}
+            isSpinning={Boolean(autoRotate)}
           />
           <OrbitControls
             enablePan={false}
@@ -120,7 +123,7 @@ export const GardenCanvas: React.FC<GardenCanvasProps> = ({
             maxDistance={26}
             maxPolarAngle={Math.PI / 2.15}
             minPolarAngle={Math.PI / 8}
-            autoRotate
+            autoRotate={Boolean(autoRotate)}
             autoRotateSpeed={0.3}
             dampingFactor={0.06}
           />

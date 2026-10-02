@@ -2,13 +2,18 @@ import React, { useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 
-export const WaterAndClouds: React.FC = () => {
+interface WaterAndCloudsProps {
+  isSpinning?: boolean;
+}
+
+export const WaterAndClouds: React.FC<WaterAndCloudsProps> = ({ isSpinning = false }) => {
   const cloudsRef = useRef<THREE.Group>(null);
   const waterRef = useRef<THREE.Mesh>(null);
   const sparklesRef = useRef<THREE.Points>(null);
 
-  // Soft animation in useFrame
+  // Soft animation in useFrame only when spinning is enabled
   useFrame((state, delta) => {
+    if (!isSpinning) return;
     if (cloudsRef.current) {
       cloudsRef.current.rotation.y += delta * 0.03;
     }

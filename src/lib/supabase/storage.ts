@@ -13,8 +13,6 @@ import {
   Achievement,
   QuestReflection,
 } from '../../types';
-import { ALL_PREDEFINED_TOPIC_CONFIGS } from '../../data/topicConfigs';
-import { PROFESSIONAL_QUESTS } from '../../data/professionalQuests';
 
 export interface FullGardenState {
   profile: UserProfile;
@@ -32,7 +30,7 @@ export interface FullGardenState {
   reflections: QuestReflection[];
 }
 
-const STORAGE_KEY = 'skillgarden_real_v2';
+const STORAGE_KEY = 'skillgarden_real_v3';
 
 const INITIAL_PROFILE: UserProfile = {
   id: 'gardener_local_master',
@@ -113,30 +111,172 @@ const INITIAL_GOALS: Goal[] = [
 ];
 
 const INITIAL_SKILLS: SkillNode[] = [
-  ...ALL_PREDEFINED_TOPIC_CONFIGS.programming.initialSkills.map((s, idx) => ({
-    ...s,
-    id: `skill_p_${idx + 1}`,
+  {
+    id: 'skill_p_1',
     userTopicId: 'ut_prog_1',
-    status: idx === 0 ? ('completed' as const) : idx === 1 ? ('active' as const) : idx === 2 ? ('available' as const) : ('locked' as const),
-    xp: idx === 0 ? 80 : idx === 1 ? 40 : 0,
-    level: idx === 0 ? 2 : 1,
-    progressPercentage: idx === 0 ? 100 : idx === 1 ? 45 : 0,
-  })),
-  ...ALL_PREDEFINED_TOPIC_CONFIGS.drawing.initialSkills.map((s, idx) => ({
-    ...s,
-    id: `skill_d_${idx + 1}`,
-    userTopicId: 'ut_draw_2',
-    status: idx === 0 ? ('active' as const) : idx === 1 ? ('available' as const) : ('locked' as const),
-    xp: idx === 0 ? 60 : 0,
+    topicSlug: 'programming',
+    name: 'Variables & State',
+    description: 'Store and manipulate reactive data with const and let.',
+    orderIndex: 1,
+    difficulty: 'Beginner',
+    status: 'completed',
+    progressPercentage: 100,
+    level: 2,
+    xp: 80,
+  },
+  {
+    id: 'skill_p_2',
+    userTopicId: 'ut_prog_1',
+    topicSlug: 'programming',
+    name: 'Functions & Logic',
+    description: 'Reusable algorithmic blocks and input transformations.',
+    orderIndex: 2,
+    difficulty: 'Beginner',
+    status: 'active',
+    progressPercentage: 45,
     level: 1,
-    progressPercentage: idx === 0 ? 60 : 0,
-  })),
+    xp: 40,
+  },
+  {
+    id: 'skill_p_3',
+    userTopicId: 'ut_prog_1',
+    topicSlug: 'programming',
+    name: 'Arrays & Collections',
+    description: 'Map, filter, and stateful list transformations.',
+    orderIndex: 3,
+    difficulty: 'Beginner+',
+    status: 'available',
+    progressPercentage: 0,
+    level: 1,
+    xp: 0,
+  },
+  {
+    id: 'skill_d_1',
+    userTopicId: 'ut_draw_2',
+    topicSlug: 'drawing',
+    name: 'Gesture & Rhythm',
+    description: 'Capturing natural fluid motion from the shoulder without wrist stiffness.',
+    orderIndex: 1,
+    difficulty: 'Beginner',
+    status: 'active',
+    progressPercentage: 60,
+    level: 1,
+    xp: 60,
+  },
+  {
+    id: 'skill_d_2',
+    userTopicId: 'ut_draw_2',
+    topicSlug: 'drawing',
+    name: 'Shape-to-Form Construction',
+    description: 'Building solid characters using 3D boxes, cylinders, and spheres.',
+    orderIndex: 2,
+    difficulty: 'Beginner',
+    status: 'available',
+    progressPercentage: 0,
+    level: 1,
+    xp: 0,
+  },
 ];
 
 const INITIAL_QUESTS: Quest[] = [
-  ...PROFESSIONAL_QUESTS,
-  ...ALL_PREDEFINED_TOPIC_CONFIGS.programming.starterQuests('ut_prog_1'),
-  ...ALL_PREDEFINED_TOPIC_CONFIGS.drawing.starterQuests('ut_draw_2'),
+  {
+    id: 'quest_prog_debug_calc',
+    userTopicId: 'ut_prog_1',
+    topicName: 'Programming',
+    topicSlug: 'programming',
+    skillName: 'Functions & Logic',
+    title: 'Debug the Broken Calculator Logic',
+    description: 'A junior colleague wrote a price calculator that outputs NaN and strings instead of numbers. Spot and fix the type-coercion bug.',
+    objective: 'Identify and fix the bug in a simple calculation function so all 3 unit test cases pass cleanly.',
+    categoryTypeBadge: 'DEBUGGING CHALLENGE',
+    type: 'Debugging challenge',
+    difficulty: 'Beginner',
+    estimatedMinutes: 8,
+    rewardXp: 30,
+    whyThisQuest: 'Debugging is 70% of real-world software engineering. Spotting type coercion trains sharp attention to detail.',
+    steps: [
+      {
+        id: 'step1',
+        title: 'Inspect the Buggy Code',
+        instruction: 'Look at how total is parsed. Number() or parseInt() is missing.',
+        type: 'concept',
+        content: 'In JavaScript, adding an empty string or passing an unparsed input can trigger string concatenation instead of numeric addition.',
+      },
+      {
+        id: 'step2',
+        title: 'Fix the Calculation',
+        instruction: 'Wrap the parameters in Number() and ensure accurate addition.',
+        type: 'interactive_code',
+        initialCode: 'function calculateTotal(subtotal, taxRate) {\n  // Fix: taxRate and subtotal might be strings\n  return Number(subtotal) * (1 + Number(taxRate));\n}',
+        solutionKeywords: ['Number', 'subtotal', 'taxRate'],
+      },
+    ],
+  },
+  {
+    id: 'quest_prog_cart_array',
+    userTopicId: 'ut_prog_1',
+    topicName: 'Programming',
+    topicSlug: 'programming',
+    skillName: 'Arrays & Collections',
+    title: 'Build a Dynamic Shopping Cart Array',
+    description: 'Write a clean array reducer function that calculates total price and applies a discount code if total exceeds $50.',
+    objective: 'Construct an immutable cart calculation pipeline that correctly aggregates item totals and returns a final receipt object.',
+    categoryTypeBadge: 'CODING CHALLENGE',
+    type: 'Coding challenge',
+    difficulty: 'Beginner+',
+    estimatedMinutes: 12,
+    rewardXp: 35,
+    whyThisQuest: 'Array manipulation is foundational for modern web development. This prepares you for data rendering.',
+    steps: [
+      {
+        id: 'step1',
+        title: 'Calculate Total Price',
+        instruction: 'Iterate through cart items multiplying price by quantity.',
+        type: 'concept',
+        content: 'Arrays in modern JavaScript utilize array.reduce() or for...of loops for clean aggregation.',
+      },
+      {
+        id: 'step2',
+        title: 'Complete Cart Function',
+        instruction: 'Implement the cart total calculation.',
+        type: 'interactive_code',
+        initialCode: 'function getCartTotal(items) {\n  return items.reduce((sum, item) => sum + (item.price * item.quantity), 0);\n}',
+        solutionKeywords: ['reduce', 'price', 'quantity'],
+      },
+    ],
+  },
+  {
+    id: 'quest_draw_shape_char',
+    userTopicId: 'ut_draw_2',
+    topicName: 'Drawing & Art',
+    topicSlug: 'drawing',
+    skillName: 'Shape-to-Form Construction',
+    title: 'Shape-to-Character Construction',
+    description: 'Turn basic geometric silhouettes (a trapezoid, a circle, and a bean shape) into expressive character faces.',
+    objective: 'Draw 3 character heads by layering facial features over fundamental silhouette primitives on the interactive canvas.',
+    categoryTypeBadge: 'DRAWING EXERCISE',
+    type: 'Drawing exercise',
+    difficulty: 'Beginner',
+    estimatedMinutes: 10,
+    rewardXp: 30,
+    whyThisQuest: 'All professional illustration begins with shape language. Triangular shapes feel energetic, circular shapes feel gentle.',
+    steps: [
+      {
+        id: 'step1',
+        title: 'Primitive Shapes as Anchors',
+        instruction: 'Notice how animators define character personality using primitive shapes before adding any lines.',
+        type: 'concept',
+        content: 'Round shapes indicate warmth. Square shapes convey stability. Angular wedges suggest speed.',
+      },
+      {
+        id: 'step2',
+        title: 'Sketch on Digital Canvas',
+        instruction: 'Use the canvas below to sketch 3 facial silhouettes.',
+        type: 'drawing_canvas',
+        drawingPrompt: 'Sketch 3 character heads starting with basic geometric shapes (a circle, an egg, and a rounded wedge).',
+      },
+    ],
+  },
 ];
 
 const INITIAL_SESSIONS: LearningSession[] = [
@@ -145,15 +285,15 @@ const INITIAL_SESSIONS: LearningSession[] = [
     userId: 'gardener_local_master',
     userTopicId: 'ut_prog_1',
     topicName: 'Programming',
-    questId: 'quest_prog_var_init',
-    questTitle: 'Store Your First Value in Code',
-    skillName: 'Variables & State',
-    type: 'lesson',
+    questId: 'quest_prog_debug_calc',
+    questTitle: 'Debug the Broken Calculator Logic',
+    skillName: 'Functions & Logic',
+    type: 'Debugging challenge',
     durationMinutes: 7,
     completed: true,
-    earnedXp: 25,
+    earnedXp: 30,
     score: 100,
-    notes: 'Learned const vs let! Made total sense.',
+    notes: 'Learned type casting with Number()! Made total sense.',
     completedAt: new Date(Date.now() - 86400000 * 2).toISOString(),
   },
   {
@@ -161,13 +301,13 @@ const INITIAL_SESSIONS: LearningSession[] = [
     userId: 'gardener_local_master',
     userTopicId: 'ut_draw_2',
     topicName: 'Drawing & Art',
-    questId: 'quest_draw_gesture_init',
-    questTitle: 'The 60-Second Gesture Line',
-    skillName: 'Gesture & Rhythm',
-    type: 'practice',
+    questId: 'quest_draw_shape_char',
+    questTitle: 'Shape-to-Character Construction',
+    skillName: 'Shape-to-Form Construction',
+    type: 'Drawing exercise',
     durationMinutes: 8,
     completed: true,
-    earnedXp: 25,
+    earnedXp: 30,
     score: 100,
     notes: 'Drawing from shoulder gives fluid motion.',
     completedAt: new Date(Date.now() - 86400000).toISOString(),
@@ -180,6 +320,9 @@ const INITIAL_WORLD: World = {
   worldLevel: 3,
   theme: 'floating_archipelago',
   unlockedRegionsCount: 2,
+  weather: 'auto',
+  ambientSoundEnabled: true,
+  autoRotate: false,
   timeOfDay: 'auto',
   updatedAt: new Date().toISOString(),
 };
@@ -205,17 +348,19 @@ const INITIAL_WORLD_REGIONS: WorldRegion[] = [
     userTopicId: 'ut_draw_2',
     topicName: 'Drawing & Art',
     topicCategory: 'art',
-    regionType: 'art_studio',
-    stage: 2,
-    progress: 30,
+    regionType: 'atelier_studio',
+    stage: 1,
+    progress: 20,
     unlocked: true,
     theme: 'art',
-    position: [3.4, 0.05, 0.5],
+    position: [3.4, 0.05, -0.5],
     updatedAt: new Date().toISOString(),
   },
 ];
 
 const INITIAL_REMINDERS: ReminderSettings = {
+  id: 'rem_master',
+  userId: 'gardener_local_master',
   enabled: true,
   preferredTime: 'evening',
   timeString: '19:30',
@@ -223,87 +368,127 @@ const INITIAL_REMINDERS: ReminderSettings = {
   style: 'gentle',
   quietStart: '22:00',
   quietEnd: '08:00',
-  lastSentAt: undefined,
 };
 
 const INITIAL_ACHIEVEMENTS: Achievement[] = [
-  { id: 'first_step', key: 'first_step', title: 'First Step', description: 'Completed your very first quest.', icon: '🌱', isUnlocked: true, unlockedAt: new Date(Date.now() - 86400000 * 2).toISOString() },
-  { id: 'polymath', key: 'polymath', title: 'Curious Mind', description: 'Explored multiple distinct learning domains.', icon: '🧠', isUnlocked: true, unlockedAt: new Date(Date.now() - 86400000).toISOString() },
-  { id: 'builder', key: 'builder', title: 'Builder', description: 'Completed your first hands-on project quest.', icon: '🏗️', isUnlocked: false },
-  { id: 'rhythm', key: 'rhythm', title: 'Gentle Rhythm', description: 'Learned across multiple days without guilt.', icon: '🌿', isUnlocked: true, unlockedAt: new Date().toISOString() },
-  { id: 'comeback', key: 'comeback', title: 'Comeback Star', description: 'Returned after a break without losing a step.', icon: '🌟', isUnlocked: false },
-  { id: 'deep_dive', key: 'deep_dive', title: 'Deep Dive', description: 'Reached Level 3 in a dedicated topic district.', icon: '🏆', isUnlocked: true, unlockedAt: new Date().toISOString() },
+  {
+    id: 'first_step',
+    key: 'first_step',
+    title: 'First Step',
+    description: 'Completed your very first micro quest.',
+    icon: '🌱',
+    isUnlocked: true,
+    unlockedAt: new Date(Date.now() - 86400000 * 2).toISOString(),
+  },
+  {
+    id: 'polymath',
+    key: 'polymath',
+    title: 'Curious Mind',
+    description: 'Explored multiple learning areas.',
+    icon: '🧠',
+    isUnlocked: true,
+    unlockedAt: new Date(Date.now() - 86400000).toISOString(),
+  },
+  {
+    id: 'builder',
+    key: 'builder',
+    title: 'Builder',
+    description: 'Completed your first hands-on challenge.',
+    icon: '🏗️',
+    isUnlocked: true,
+    unlockedAt: new Date().toISOString(),
+  },
+  {
+    id: 'rhythm',
+    key: 'rhythm',
+    title: 'Gentle Rhythm',
+    description: 'Learned across multiple days without guilt.',
+    icon: '🌿',
+    isUnlocked: false,
+  },
 ];
 
 export class LocalGardenStorage {
   load(): FullGardenState {
+    if (typeof window === 'undefined') {
+      return this.getDefault();
+    }
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
       if (raw) {
-        return JSON.parse(raw);
+        const parsed = JSON.parse(raw);
+        if (parsed.profile && parsed.userTopics) {
+          return {
+            ...this.getDefault(),
+            ...parsed,
+          };
+        }
       }
     } catch (e) {
-      console.warn('Failed to parse garden state from localStorage', e);
+      console.warn('Failed to load local garden state', e);
     }
-
-    return {
-      profile: { ...INITIAL_PROFILE },
-      userTopics: [...INITIAL_TOPICS],
-      topicPreferences: [],
-      topicAnswers: [],
-      goals: [...INITIAL_GOALS],
-      skills: [...INITIAL_SKILLS],
-      quests: [...INITIAL_QUESTS],
-      sessions: [...INITIAL_SESSIONS],
-      world: { ...INITIAL_WORLD },
-      worldRegions: [...INITIAL_WORLD_REGIONS],
-      reminders: { ...INITIAL_REMINDERS },
-      achievements: [...INITIAL_ACHIEVEMENTS],
-      reflections: [],
-    };
+    const def = this.getDefault();
+    this.save(def);
+    return def;
   }
 
-  save(data: FullGardenState): void {
+  save(state: FullGardenState): void {
+    if (typeof window === 'undefined') return;
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
     } catch (e) {
-      console.warn('Failed to save to localStorage', e);
+      console.error('Failed to save garden state', e);
     }
   }
 
   reset(): FullGardenState {
-    try {
-      localStorage.removeItem(STORAGE_KEY);
-    } catch {}
-
     const fresh: FullGardenState = {
       profile: {
         ...INITIAL_PROFILE,
-        hasCompletedOnboarding: false,
-        totalXp: 0,
         overallLevel: 1,
+        totalXp: 0,
         activeDaysThisWeek: 1,
+        hasCompletedOnboarding: false,
+        lastActiveDate: new Date().toISOString(),
       },
       userTopics: [],
       topicPreferences: [],
       topicAnswers: [],
       goals: [],
       skills: [],
-      quests: [...PROFESSIONAL_QUESTS],
+      quests: INITIAL_QUESTS,
       sessions: [],
       world: {
         ...INITIAL_WORLD,
         worldLevel: 1,
         unlockedRegionsCount: 0,
+        autoRotate: false,
       },
       worldRegions: [],
-      reminders: { ...INITIAL_REMINDERS },
+      reminders: INITIAL_REMINDERS,
       achievements: INITIAL_ACHIEVEMENTS.map((a) => ({ ...a, isUnlocked: false })),
       reflections: [],
     };
-
     this.save(fresh);
     return fresh;
+  }
+
+  getDefault(): FullGardenState {
+    return {
+      profile: INITIAL_PROFILE,
+      userTopics: INITIAL_TOPICS,
+      topicPreferences: [],
+      topicAnswers: [],
+      goals: INITIAL_GOALS,
+      skills: INITIAL_SKILLS,
+      quests: INITIAL_QUESTS,
+      sessions: INITIAL_SESSIONS,
+      world: INITIAL_WORLD,
+      worldRegions: INITIAL_WORLD_REGIONS,
+      reminders: INITIAL_REMINDERS,
+      achievements: INITIAL_ACHIEVEMENTS,
+      reflections: [],
+    };
   }
 }
 

@@ -13,7 +13,6 @@ import { AuthModal } from './components/auth/AuthModal';
 import { QuestPlayerModal } from './components/today/QuestPlayerModal';
 import { SupabaseSqlModal } from './components/common/SupabaseSqlModal';
 import { personalizationEngine } from './lib/personalization/engine';
-import { PROFESSIONAL_QUESTS } from './data/professionalQuests';
 import { gardenDb } from './lib/supabase/client';
 import {
   UserProfile,
@@ -26,6 +25,7 @@ import {
   WorldRegion,
   ReminderSettings,
   Achievement,
+  QuestReflection,
 } from './types';
 
 export function App() {
@@ -51,6 +51,7 @@ export function App() {
   const [worldRegions, setWorldRegions] = useState<WorldRegion[]>(() => gardenDb.getSnapshot().worldRegions);
   const [reminders, setReminders] = useState<ReminderSettings>(() => gardenDb.getSnapshot().reminders);
   const [achievements, setAchievements] = useState<Achievement[]>(() => gardenDb.getSnapshot().achievements);
+  const [reflections, setReflections] = useState<QuestReflection[]>(() => gardenDb.getSnapshot().reflections || []);
 
   // Remote Sync on initial mount
   useEffect(() => {
@@ -65,6 +66,7 @@ export function App() {
       setWorldRegions(snap.worldRegions);
       setReminders(snap.reminders);
       setAchievements(snap.achievements);
+      setReflections(snap.reflections || []);
       setLoading(false);
 
       if (!snap.profile.hasCompletedOnboarding) {
@@ -92,7 +94,8 @@ export function App() {
     w = world,
     wr = worldRegions,
     rem = reminders,
-    ach = achievements
+    ach = achievements,
+    refl = reflections
   ) => {
     gardenDb.saveSnapshot({
       profile: p,
@@ -107,6 +110,7 @@ export function App() {
       worldRegions: wr,
       reminders: rem,
       achievements: ach,
+      reflections: refl,
     });
   };
 
@@ -411,6 +415,76 @@ export function App() {
     setActiveDirectQuest(matchingQuest);
   };
 
+  // Delete an island / user topic from the 3D world and Supabase tables
+  const handleDeleteTopic = async (userTopicId: string) => {
+    const topicToDelete = userTopics.find((t) => t.id === userTopicId);
+    if (!topicToDelete) return;
+
+    const remainingTopics = userTopics.filter((t) => t.id !== userTopicId);
+    const remainingRegions = worldRegions
+      .filter((r) => r.userTopicId !== userTopicId)
+      .map((r, index) => {
+        const angle = (index / Math.max(1, remainingTopics.length)) * Math.PI * 2;
+        const radius = 6.2;
+        return {
+          ...r,
+          position: [Math.sin(angle) * radius, 0.05, Math.cos(angle) * radius] as [number, number, number],
+        };
+      });
+    const remainingGoals = goals.filter((g) => g.userTopicId !== userTopicId);
+    const remainingSkills = skills.filter((s) => s.userTopicId !== userTopicId);
+    const remainingQuests = quests.filter((q) => q.userTopicId !== userTopicId);
+
+    setUserTopics(remainingTopics);
+    setWorldRegions(remainingRegions);
+    setGoals(remainingGoals);
+    setSkills(remainingSkills);
+    setQuests(remainingQuests);
+
+    const updatedWorld = {
+      ...world,
+      unlockedRegionsCount: remainingRegions.length,
+    };
+    setWorld(updatedWorld);
+
+    persistAll(
+      profile,
+      remainingTopics,
+      remainingGoals,
+      remainingSkills,
+      remainingQuests,
+      sessions,
+      updatedWorld,
+      remainingRegions,
+      reminders,
+      achievements,
+      reflections
+    );
+
+    await gardenDb.deleteUserTopic(userTopicId);
+
+    addToast({
+      type: 'info',
+      title: 'Island Removed',
+      description: `${topicToDelete.topicName} district has been removed from your 3D world.`,
+    });
+  };
+
+  // Primary quest recommendation using 11-factor scoring (declared before any early returns)
+  const primaryRecommendation = useMemo(() => {
+    const candidatePool = quests;
+    const res = personalizationEngine.getTodayRecommendation(
+      profile,
+      goals,
+      skills,
+      sessions,
+      reflections,
+      userTopics[0]?.topicName,
+      candidatePool
+    );
+    return res.quest;
+  }, [profile, goals, skills, sessions, reflections, userTopics, quests]);
+
   if (loading) {
     return (
       <div className="min-h-screen bg-stone-50 flex flex-col items-center justify-center p-4">
@@ -420,21 +494,6 @@ export function App() {
       </div>
     );
   }
-
-  // Primary quest recommendation using 11-factor scoring
-  const primaryRecommendation = useMemo(() => {
-    const candidatePool = [...PROFESSIONAL_QUESTS, ...quests];
-    const res = personalizationEngine.getTodayRecommendation(
-      profile,
-      goals,
-      skills,
-      sessions,
-      [],
-      userTopics[0]?.topicName,
-      candidatePool
-    );
-    return res.quest;
-  }, [profile, goals, skills, sessions, userTopics, quests]);
 
   return (
     <div className="min-h-screen bg-stone-50 text-stone-900 font-sans flex flex-col antialiased selection:bg-emerald-100 selection:text-emerald-900">
@@ -485,6 +544,7 @@ export function App() {
             onSelectTopic={(userTopicId) => {
               setActiveTab('progress');
             }}
+            onDeleteTopic={handleDeleteTopic}
             onUpdateWorld={(updated) => {
               const newWorld = { ...world, ...updated };
               setWorld(newWorld);
@@ -548,6 +608,7 @@ export function App() {
               setIsAddingSingleTopic(true);
               setIsOnboardingOpen(true);
             }}
+            onDeleteTopic={handleDeleteTopic}
             onResetAllData={() => {
               const fresh = gardenDb.resetAll();
               setProfile(fresh.profile);
@@ -560,6 +621,7 @@ export function App() {
               setWorldRegions(fresh.worldRegions);
               setReminders(fresh.reminders);
               setAchievements(fresh.achievements);
+              setReflections(fresh.reflections || []);
               setActiveTab('landing');
               addToast({ type: 'info', title: 'Garden Returned to Seedling', description: 'Ready to sprout afresh.' });
             }}

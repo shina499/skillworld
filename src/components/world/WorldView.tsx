@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import confetti from 'canvas-confetti';
-import { Play, Sparkles, Compass, Eye, ShieldCheck, Heart } from 'lucide-react';
+import { Play, Sparkles, Compass, Eye, ShieldCheck, Heart, Trash2 } from 'lucide-react';
 import { GardenCanvas } from '../../three/GardenCanvas';
 import { WorldControls } from './WorldControls';
 import { UserProfile, UserTopic, WorldRegion, World, Quest, SkillNode } from '../../types';
@@ -13,6 +13,7 @@ interface WorldViewProps {
   recommendedQuest: Quest;
   onStartQuest: (quest: Quest) => void;
   onSelectTopic: (userTopicId: string) => void;
+  onDeleteTopic?: (userTopicId: string) => void;
   onUpdateWorld: (updated: Partial<World>) => void;
 }
 
@@ -24,10 +25,12 @@ export const WorldView: React.FC<WorldViewProps> = ({
   recommendedQuest,
   onStartQuest,
   onSelectTopic,
+  onDeleteTopic,
   onUpdateWorld,
 }) => {
   const [selectedTopicId, setSelectedTopicId] = useState<string | undefined>(userTopics[0]?.id);
   const [inspectingTopic, setInspectingTopic] = useState<UserTopic | null>(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [lowPowerMode, setLowPowerMode] = useState(false);
 
   // Trigger gentle growth sparkle bloom
@@ -69,6 +72,7 @@ export const WorldView: React.FC<WorldViewProps> = ({
         onSelectTopic={handleSelectDistrict}
         onHubClick={handleTriggerBloom}
         lowPowerMode={lowPowerMode}
+        autoRotate={Boolean(world.autoRotate)}
         hasLearnedToday={Boolean(profile.lastActiveDate && new Date(profile.lastActiveDate).toDateString() === new Date().toDateString())}
       />
 
@@ -122,11 +126,17 @@ export const WorldView: React.FC<WorldViewProps> = ({
         weather={world.weather}
         activeDaysThisWeek={profile.activeDaysThisWeek}
         hasLearnedToday={Boolean(profile.lastActiveDate && new Date(profile.lastActiveDate).toDateString() === new Date().toDateString())}
+        autoRotate={Boolean(world.autoRotate)}
+        onToggleAutoRotate={(val) => onUpdateWorld({ autoRotate: val })}
         onChangeTimeOfDay={(time) => onUpdateWorld({ timeOfDay: time })}
         onChangeWeather={(weather) => onUpdateWorld({ weather })}
         lowPowerMode={lowPowerMode}
         onToggleLowPower={() => setLowPowerMode(!lowPowerMode)}
         onTriggerBloom={handleTriggerBloom}
+        onResetView={() => {
+          setSelectedTopicId(undefined);
+          setInspectingTopic(null);
+        }}
       />
 
       {/* Bottom Floating Quick Quest Callout */}
@@ -209,29 +219,74 @@ export const WorldView: React.FC<WorldViewProps> = ({
               This 3D district evolves as you complete quests in {inspectingTopic.topicName}. Each stage unlocks new landmarks, structures, and props.
             </p>
 
-            <div className="flex justify-end gap-2 pt-2">
-              <button
-                type="button"
-                onClick={() => {
-                  onSelectTopic(inspectingTopic.id);
-                  setInspectingTopic(null);
-                }}
-                className="px-4 py-2 rounded-xl text-stone-600 hover:text-stone-900 text-xs font-bold"
-              >
-                View Topic Path
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  onStartQuest(recommendedQuest);
-                  setInspectingTopic(null);
-                }}
-                className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-md transition flex items-center gap-1.5"
-              >
-                <Play className="w-3.5 h-3.5 fill-white" />
-                <span>Start Next Quest</span>
-              </button>
-            </div>
+            {showDeleteConfirm ? (
+              <div className="p-3.5 rounded-2xl bg-red-50 border border-red-200 space-y-2 animate-fade-in">
+                <div className="text-xs font-black text-red-900">
+                  Delete {inspectingTopic.topicName} Island?
+                </div>
+                <p className="text-[11px] text-red-700 leading-relaxed">
+                  This will remove this district from your 3D archipelago and remove its active quests.
+                </p>
+                <div className="flex items-center gap-2 pt-1">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onDeleteTopic?.(inspectingTopic.id);
+                      setInspectingTopic(null);
+                      setShowDeleteConfirm(false);
+                    }}
+                    className="px-3.5 py-1.5 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-xs shadow-xs transition active:scale-95 cursor-pointer"
+                  >
+                    Yes, Delete Island
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setShowDeleteConfirm(false)}
+                    className="px-3.5 py-1.5 rounded-xl bg-white border border-stone-300 text-stone-700 text-xs font-bold transition hover:bg-stone-50 cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="flex items-center justify-between gap-2 pt-2 border-t border-stone-100">
+                {onDeleteTopic && (
+                  <button
+                    type="button"
+                    onClick={() => setShowDeleteConfirm(true)}
+                    className="px-3 py-2 rounded-xl text-red-600 hover:bg-red-50 text-xs font-bold flex items-center gap-1.5 transition cursor-pointer"
+                    title="Delete this island from your world"
+                  >
+                    <Trash2 className="w-3.5 h-3.5 text-red-500" />
+                    <span>Delete Island</span>
+                  </button>
+                )}
+
+                <div className="flex items-center gap-2 ml-auto">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onSelectTopic(inspectingTopic.id);
+                      setInspectingTopic(null);
+                    }}
+                    className="px-3.5 py-2 rounded-xl text-stone-600 hover:text-stone-900 text-xs font-bold transition cursor-pointer"
+                  >
+                    View Topic Path
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onStartQuest(recommendedQuest);
+                      setInspectingTopic(null);
+                    }}
+                    className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-md transition flex items-center gap-1.5 cursor-pointer active:scale-95"
+                  >
+                    <Play className="w-3.5 h-3.5 fill-white" />
+                    <span>Start Next Quest</span>
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}
